@@ -30,8 +30,6 @@ import java.util.TimerTask;
  *  To fix:
  *      - multiple throw events
  *      - Current height of ball not updating (i.e the text view wont update)
- *      - Current height of ball gives to high number
- *      - Score gets value of old throw.
  *      - only registers higher throws
  *
  *      Line 120 ish     public void throwEvent(SensorEvent event) method.
@@ -142,44 +140,24 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-       textView_x.setText("X: " + event.values[0]);
-       textView_y.setText("Y: " + event.values[1]);
-       textView_z.setText("Z: " + event.values[2]);
+        textView_x.setText("X: " + event.values[0]);
+        textView_y.setText("Y: " + event.values[1]);
+        textView_z.setText("Z: " + event.values[2]);
 
-       // Calculate Acceleration using formula provided from the lab
+        // Calculate Acceleration using formula provided from the lab
         acceleration = Math.sqrt((event.values[0] * event.values[0])
-         + (event.values[1] * event.values[1]) + (event.values[2] * event.values[2]) )
-        - SensorManager.GRAVITY_EARTH;
+                + (event.values[1] * event.values[1]) + (event.values[2] * event.values[2]) )
+                - SensorManager.GRAVITY_EARTH;
 
         textView_acc.setText("Acceleration: " + acceleration);
 
-        /**
-         *  If the acceleration is greater than the threshold
-         *  the code starts an "throwEvent"
-         */
+        // If the acceleration is greater than the threshold the code starts an "throwEvent"
         if(accelerationThreadsheld <= acceleration && (inThrowEvent == false))
         {
-            Log.i("ThrowEvent2" , "Event stated at acceleration: " + acceleration);
-            Log.i("ThrowEvent2", "bool is: " + inThrowEvent);
+            Log.i("ThrowEventStart" , "Event started at acceleration: " + acceleration);
+            Log.i("ThrowEventStart", "bool is: " + inThrowEvent);
             inThrowEvent = true;
             throwEvent(event);
-        }
-    }
-
-    /**
-     *  When the settings activity is done this method stores the entered value
-     *  inn the variable.
-     */
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_CODE_TRANSFER) {
-            if (resultCode == RESULT_OK) {
-
-                // Get the new threshold value
-                int threshold = data.getIntExtra("threshold", 0);
-                Log.i("Settings", "Threshold is: " + threshold);
-                accelerationThreadsheld = threshold;
-            }
         }
     }
 
@@ -197,8 +175,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // The idea of this whole while loop is to start an
         // 500 ms throw, where the highest acceleration registered will
         // be the one that is used for the actual throw, i.e calculate ball height
-        // score etc. How ever for now it seems that it wont register any new events
-        // but my code seems correct so I'm not sure why that is
+        // score etc.
         while(start > (delta - 500))
         {
             delta = System.currentTimeMillis();
@@ -211,11 +188,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             if(maxAcceleration < acceleration)
             {
                 maxAcceleration = acceleration;
-                Log.i("ThrowEvent3", "New max acceleration is " + maxAcceleration);
+                Log.i("ThrowEventInThrow", "New max acceleration is " + maxAcceleration);
             }
         }
 
-        Log.i("ThrowEvent3", "Start of throw is done, Max acceleration is: " + maxAcceleration);
+        Log.i("ThrowEventInThrow", "Start of throw is done, Max acceleration is: " + maxAcceleration);
 
         // Calculates the time it takes the ball to reach the top of the throw
         // then it plays a sound
@@ -229,7 +206,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         playSound();
         //Log.i("ThrowEvent", "Waiting " + timeToTop + "ms for the ball to get back down");
         waitMSDown(timeToTop);
-
 
         // calculate the score of the throw
         score =  Math.pow(maxAcceleration, 2) / (2 * SensorManager.GRAVITY_EARTH);
@@ -261,10 +237,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         double counter = 0;
 
         /*
-            This while loops does a few things
+            This while loop
             - calculates displacement at time t
             - tries to display the current height in the text view
-            -
          */
         while(start > (delta - nrOfMSToWait))
         {
@@ -293,17 +268,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
             Log.i("ThrowEvent", "time is (should contain decimals now) " + time);
 
-            displacement = maxAcceleration * time + 1/2 *
-                    - SensorManager.GRAVITY_EARTH * Math.pow(time, 2);
-
-            // delta = System.currentTimeMillis();
-            // time = delta - start;
-
-            displacement = maxAcceleration * time + 1/2 *
-                    - SensorManager.GRAVITY_EARTH * Math.pow(time, 2);
+            // calculate displacement of ball at a given time
+            displacement = maxAcceleration / 2 * time;
 
             textView_height_at_t.setText("Current Height of ball is: " + displacement);
-
             Log.i("ThrowEvent", "Current Height of ball is: " + displacement);
         }
     }
@@ -317,6 +285,23 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         double delta = System.currentTimeMillis();
         while(start > (delta - nrOfMSToWait)) {
             delta = System.currentTimeMillis();
+        }
+    }
+
+    /**
+     *  When the settings activity is done this method stores the entered value
+     *  inn the variable.
+     */
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_CODE_TRANSFER) {
+            if (resultCode == RESULT_OK) {
+
+                // Get the new threshold value
+                int threshold = data.getIntExtra("threshold", 0);
+                Log.i("Settings", "Threshold is: " + threshold);
+                accelerationThreadsheld = threshold;
+            }
         }
     }
 
@@ -335,35 +320,4 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     {
         mediaPlayer.start();
     }
-
-
-
-    /* Failed attempt at updateing the view live while in throw.
-    class UpdateView extends Thread
-    {
-        @Override
-        public void run() {
-
-            while(true)
-            {
-                try {
-                    Thread.sleep(10);
-                }
-                catch (InterruptedException e)
-                {
-                    e.printStackTrace();
-                }
-
-                noitfyViewChange();
-            }
-        }
-    }
-    public synchronized void noitfyViewChange()
-    {
-        textView_height_at_t.post(new Runnable() {
-            public void run() {
-                textView_height_at_t.setText("Current Height of ball is: " + displacement);
-            }
-        });
-    } */
 }
